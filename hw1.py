@@ -1,5 +1,5 @@
 from typing import List
-
+import datetime 
 import pandas as pd
 
 CONFIRMED_CASES_URL = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data" \
@@ -12,7 +12,7 @@ This speeds up the tests significantly
 confirmed_cases = pd.read_csv(CONFIRMED_CASES_URL, error_bad_lines=False)
 
 
-def poland_cases_by_date(day: int, month: int, year: int = 2020) -> int:
+def poland_cases_by_date(day: int, month: int, year: int = 2020):
     """
     Returns confirmed infection cases for country 'Poland' given a date.
 
@@ -28,8 +28,21 @@ def poland_cases_by_date(day: int, month: int, year: int = 2020) -> int:
     :return: Number of cases on a given date as an integer
     """
     
-    # Your code goes here (remove pass)
-    pass
+  
+  if type(day) != int or type(month) != int or type(year) != int:
+    raise ValueError ("Wrong type!")
+  if day < 1:
+    raise ValueError ("Wrong day!")
+  if month < 1:
+    raise ValueError ("Wrong month!")
+  if year < 2020:
+    raise ValueError ("Brak danych!")
+  
+
+  year -= 2000
+  result = confirmed_cases.loc[confirmed_cases["Country/Region"]=="Poland"][f"{month}/{day}/{year}"].values[0]
+
+  return result
 
 
 def top5_countries_by_date(day: int, month: int, year: int = 2020) -> List[str]:
@@ -47,9 +60,11 @@ def top5_countries_by_date(day: int, month: int, year: int = 2020) -> List[str]:
     :param year: Month to get the countries for as an integer indexed from 1
     :return: A list of strings with the names of the coutires
     """
+  year -= 2000
+  data = f"{month}/{day}/{year}"
+  
+  return confirmed_cases.groupby("Country/Region").sum().sort_values(by = data, ascending=False).head(5).index.tolist()  
 
-    # Your code goes here (remove pass)
-    pass
 
 # Function name is wrong, read the pydoc
 def no_new_cases_count(day: int, month: int, year: int = 2020) -> int:
@@ -69,5 +84,17 @@ def no_new_cases_count(day: int, month: int, year: int = 2020) -> int:
     :return: Number of countries/regions where the count has not changed in a day
     """
     
-    # Your code goes here (remove pass)
-    pass
+  d = datetime.date(year, month, day)
+  d_before = d + datetime.timedelta(days = -1)
+  d = d.strftime("%m/%d/%y").lstrip("0").replace("/0", "/")
+  d_before = d_before.strftime("%m/%d/%y").lstrip("0").replace("/0", "/")
+
+  cases_d = confirmed_cases[["Country/Region", d]].groupby(["Country/Region"]).max().values.tolist()
+  cases_d_before = confirmed_cases[["Country/Region", d_before]].groupby(["Country/Region"]).max().values.tolist()
+  
+  count = 0
+  for i in range(len(cases_d)):
+    if cases_d[i] == cases_d_before[i]:
+      count += 1
+  return count
+
